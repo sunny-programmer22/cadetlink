@@ -1,6 +1,6 @@
 import { User, Calendar, MessageSquareText } from 'lucide-react'
 
-export default function PostCard({ post, onImageClick }) {
+export default function PostCard({ post, onImageClick, displayName }) {
   const profile = post.profiles || {}
   const initials = (profile.full_name || '??')
     .split(' ')
@@ -21,7 +21,7 @@ export default function PostCard({ post, onImageClick }) {
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-slate-200 text-sm flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-amber-500/70" />
-                {profile.full_name || 'Unknown Cadet'}
+                {profile.full_name || displayName || 'Unknown Cadet'}
               </h3>
             </div>
             <p className="text-[11px] font-mono text-slate-500">

@@ -223,7 +223,7 @@ export default function Profile({ session }) {
         ) : (
           <div className="space-y-4">
             {myPosts.map((post) => (
-              <PostCard key={post.id} post={post} onImageClick={(url) => setLightboxImage(url)} />
+              <PostCard key={post.id} post={post} onImageClick={(url) => setLightboxImage(url)} displayName={displayName} />
             ))}
           </div>
         )}
