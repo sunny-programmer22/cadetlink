@@ -3,6 +3,9 @@ import { supabase } from '../supabaseClient'
 import Lightbox from '../components/Lightbox'
 import { Image, Film, Grid3X3, AlertCircle, Upload, X, Send } from 'lucide-react'
 
+const isImage = (url) => /\.(jpg|jpeg|png|gif|webp|bmp|svg|avif|ico)$/i.test(url || '')
+const isMediaImage = (item) => isImage(item.media_url)
+
 export default function Gallery({ session }) {
   const [mediaItems, setMediaItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -11,7 +14,6 @@ export default function Gallery({ session }) {
   const [filter, setFilter] = useState('all')
   const [showUpload, setShowUpload] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
-  const [uploadType, setUploadType] = useState('')
   const [uploadCaption, setUploadCaption] = useState('')
   const [uploading, setUploading] = useState(false)
 
@@ -20,7 +22,7 @@ export default function Gallery({ session }) {
   useEffect(() => {
     supabase
       .from('posts')
-      .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
       .not('media_url', 'is', null)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
@@ -50,17 +52,15 @@ export default function Gallery({ session }) {
       user_id: session.user.id,
       content: uploadCaption.trim() || null,
       media_url: publicUrl,
-      media_type: uploadType,
     }])
 
     setUploadFile(null)
-    setUploadType('')
     setUploadCaption('')
     setShowUpload(false)
     setUploading(false)
     supabase
       .from('posts')
-      .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
       .not('media_url', 'is', null)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => { if (!error) setMediaItems(data || []) })
@@ -75,10 +75,10 @@ export default function Gallery({ session }) {
 
   const filteredItems = filter === 'all'
     ? mediaItems
-    : mediaItems.filter(item => item.media_type === filter)
+    : mediaItems.filter(item => filter === 'image' ? isMediaImage(item) : !isMediaImage(item))
 
   const imageUrls = filteredItems
-    .filter(item => item.media_type === 'image')
+    .filter(isMediaImage)
     .map(item => item.media_url)
 
   const openLightbox = (index) => {
@@ -115,34 +115,31 @@ export default function Gallery({ session }) {
           <div className="flex items-center gap-3">
             <button type="button" onClick={() => triggerFilePicker('image')}
               className={`flex-1 flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed transition-all cursor-pointer
-                ${uploadFile && uploadType === 'image' ? 'border-amber-500 bg-amber-500/5' : 'border-slate-700 hover:border-slate-600 bg-slate-950/50'}`}>
+                ${uploadFile && !uploadFile.type.startsWith('video/') ? 'border-amber-500 bg-amber-500/5' : 'border-slate-700 hover:border-slate-600 bg-slate-950/50'}`}>
               <Image className="w-8 h-8 text-slate-500" />
               <span className="text-xs text-slate-400 font-medium">Photo</span>
             </button>
             <button type="button" onClick={() => triggerFilePicker('video')}
               className={`flex-1 flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed transition-all cursor-pointer
-                ${uploadFile && uploadType === 'video' ? 'border-amber-500 bg-amber-500/5' : 'border-slate-700 hover:border-slate-600 bg-slate-950/50'}`}>
+                ${uploadFile && uploadFile.type.startsWith('video/') ? 'border-amber-500 bg-amber-500/5' : 'border-slate-700 hover:border-slate-600 bg-slate-950/50'}`}>
               <Film className="w-8 h-8 text-slate-500" />
               <span className="text-xs text-slate-400 font-medium">Video</span>
             </button>
             <input ref={fileInputRef} type="file" className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (f) {
-                  setUploadFile(f)
-                  setUploadType(f.type.startsWith('video/') ? 'video' : 'image')
-                }
+                if (f) setUploadFile(f)
               }} />
           </div>
 
           {uploadFile && (
             <div className="flex items-center justify-between bg-slate-950/50 rounded-lg px-3 py-2 border border-slate-800/60">
               <div className="flex items-center gap-2 min-w-0">
-                {uploadType === 'image' ? <Image className="w-4 h-4 text-amber-400 shrink-0" /> : <Film className="w-4 h-4 text-amber-400 shrink-0" />}
+                {uploadFile.type.startsWith('video/') ? <Film className="w-4 h-4 text-amber-400 shrink-0" /> : <Image className="w-4 h-4 text-amber-400 shrink-0" />}
                 <span className="text-xs text-slate-300 truncate">{uploadFile.name}</span>
                 <span className="text-[10px] font-mono text-slate-500 shrink-0">({(uploadFile.size / 1024 / 1024).toFixed(1)} MB)</span>
               </div>
-              <button type="button" onClick={() => { setUploadFile(null); setUploadType('') }}
+              <button type="button" onClick={() => setUploadFile(null)}
                 className="text-xs text-red-400 hover:text-red-300 ml-2 shrink-0">Remove</button>
             </div>
           )}
@@ -199,8 +196,8 @@ export default function Gallery({ session }) {
           {filteredItems.map((item) => (
             <div key={item.id}
               className="group relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden cursor-pointer hover:border-amber-500/30 transition-all duration-200"
-              onClick={() => item.media_type === 'image' && openLightbox(imageUrls.indexOf(item.media_url))}>
-              {item.media_type === 'image' ? (
+              onClick={() => isMediaImage(item) && openLightbox(imageUrls.indexOf(item.media_url))}>
+              {isMediaImage(item) ? (
                 <>
                   <img src={item.media_url} alt={item.content || 'Batch media'}
                     className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
@@ -219,7 +216,7 @@ export default function Gallery({ session }) {
                   </div>
                 </div>
               )}
-              {item.media_type === 'image' && (
+              {isMediaImage(item) && (
                 <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded text-[9px] font-mono text-amber-400/80 border border-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity">
                   IMAGE
                 </div>

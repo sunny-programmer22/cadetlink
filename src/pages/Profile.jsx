@@ -29,7 +29,7 @@ export default function Profile({ session }) {
       })
     supabase
       .from('posts')
-      .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => { if (!error) setMyPosts(data || []) })
@@ -65,10 +65,10 @@ export default function Profile({ session }) {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_url: publicUrl })
+      .update({ avartar_url: publicUrl })
       .eq('id', session.user.id)
     if (!error) {
-      setProfile((prev) => ({ ...prev, avatar_url: publicUrl }))
+      setProfile((prev) => ({ ...prev, avartar_url: publicUrl }))
     }
     setUploadingAvatar(false)
   }
@@ -119,8 +119,8 @@ export default function Profile({ session }) {
           {/* Avatar — editable */}
           <div className="px-5 pb-5 -mt-10">
             <div className="relative group mb-4 w-20 h-20">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="avatar"
+              {profile?.avartar_url ? (
+                <img src={profile.avartar_url} alt="avatar"
                   className="w-20 h-20 rounded-xl border-[3px] border-slate-900 object-cover shadow-lg shadow-amber-500/20" />
               ) : (
                 <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 border-[3px] border-slate-900 flex items-center justify-center text-white text-xl font-black font-mono shadow-lg shadow-amber-500/20">

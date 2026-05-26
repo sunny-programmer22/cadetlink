@@ -1,5 +1,7 @@
 import { User, Calendar, MessageSquareText } from 'lucide-react'
 
+const isImage = (url) => /\.(jpg|jpeg|png|gif|webp|bmp|svg|avif|ico)$/i.test(url || '')
+
 export default function PostCard({ post, onImageClick, displayName }) {
   const profile = post.profiles || {}
   const initials = (profile.full_name || '??')
@@ -46,9 +48,9 @@ export default function PostCard({ post, onImageClick, displayName }) {
       {post.media_url && (
         <div
           className="rounded-lg overflow-hidden border border-slate-800/60 bg-slate-950 cursor-pointer group/media relative"
-          onClick={() => post.media_type === 'image' && onImageClick?.(post.media_url)}
+          onClick={() => isImage(post.media_url) && onImageClick?.(post.media_url)}
         >
-          {post.media_type === 'image' ? (
+          {isImage(post.media_url) ? (
             <div className="relative">
               <img
                 src={post.media_url}

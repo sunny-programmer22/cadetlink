@@ -3,20 +3,20 @@ import { supabase } from '../supabaseClient'
 import PostCard from '../components/PostCard'
 import { Send, Image, Video, Camera, FileText } from 'lucide-react'
 
+const isVideoFile = (file) => file.type.startsWith('video/')
+
 export default function Feed({ session }) {
   const [posts, setPosts] = useState([])
   const [content, setContent] = useState('')
   const [file, setFile] = useState(null)
-  const [fileType, setFileType] = useState('')
   const [uploading, setUploading] = useState(false)
   const [lightboxImage, setLightboxImage] = useState(null)
   const fileInputRef = useRef(null)
-  const videoInputRef = useRef(null)
 
   useEffect(() => {
     supabase
       .from('posts')
-      .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => { if (!error) setPosts(data || []) })
   }, [])
@@ -27,7 +27,6 @@ export default function Feed({ session }) {
     setUploading(true)
 
     let mediaUrl = null
-    let mediaType = fileType
 
     if (file) {
       const ext = file.name.split('.').pop()
@@ -56,18 +55,16 @@ export default function Feed({ session }) {
         user_id: session.user.id,
         content: content.trim(),
         media_url: mediaUrl,
-        media_type: mediaType,
       }
     ])
 
     if (!error) {
       setContent('')
       setFile(null)
-      setFileType('')
       setUploading(false)
       supabase
         .from('posts')
-        .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+        .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
         .order('created_at', { ascending: false })
         .then(({ data, error }) => { if (!error) setPosts(data || []) })
     } else {
@@ -75,19 +72,14 @@ export default function Feed({ session }) {
     }
   }
 
-  const handleFileSelect = (e, type) => {
+  const handleFileSelect = (e) => {
     const selected = e.target.files?.[0]
-    if (selected) {
-      setFile(selected)
-      setFileType(type)
-    }
+    if (selected) setFile(selected)
   }
 
   const clearAttachment = () => {
     setFile(null)
-    setFileType('')
     if (fileInputRef.current) fileInputRef.current.value = ''
-    if (videoInputRef.current) videoInputRef.current.value = ''
   }
 
   return (
@@ -127,10 +119,10 @@ export default function Feed({ session }) {
           {file ? (
             <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800/60 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 min-w-0">
-                {fileType === 'image' ? (
-                  <Image className="w-4 h-4 text-amber-400 shrink-0" />
-                ) : (
+                {isVideoFile(file) ? (
                   <Video className="w-4 h-4 text-amber-400 shrink-0" />
+                ) : (
+                  <Image className="w-4 h-4 text-amber-400 shrink-0" />
                 )}
                 <span className="text-xs text-slate-300 truncate">{file.name}</span>
                 <span className="text-[10px] font-mono text-slate-500 shrink-0">
@@ -146,14 +138,14 @@ export default function Feed({ session }) {
               <span className="text-[11px] text-slate-500 font-medium">Attach media:</span>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => { fileInputRef.current.accept = 'image/*'; fileInputRef.current.click() }}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 transition-colors"
               >
                 <Image className="w-3.5 h-3.5" /> Photo
               </button>
               <button
                 type="button"
-                onClick={() => videoInputRef.current?.click()}
+                onClick={() => { fileInputRef.current.accept = 'video/*'; fileInputRef.current.click() }}
                 className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-amber-400 transition-colors"
               >
                 <Video className="w-3.5 h-3.5" /> Video
@@ -161,16 +153,9 @@ export default function Feed({ session }) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 className="hidden"
-                onChange={(e) => handleFileSelect(e, 'image')}
-              />
-              <input
-                ref={videoInputRef}
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => handleFileSelect(e, 'video')}
+                onChange={handleFileSelect}
               />
             </div>
           )}
