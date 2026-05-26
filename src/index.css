@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1e293b #020617;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #020617;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: #1e293b;
+    border-radius: 3px;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+
+  input, textarea, select {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 shadow-lg;
+  }
+
+  .tactical-card {
+    @apply bg-slate-900 border border-slate-800 rounded-xl shadow-md hover:border-slate-700/80 transition-all duration-200;
+  }
+
+  .tactical-input {
+    @apply w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:border-amber-500/70 focus:ring-1 focus:ring-amber-500/20 transition-all;
+  }
+
+  .tactical-btn {
+    @apply bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-lg transition-all duration-200 text-sm uppercase tracking-wider shadow-md hover:shadow-amber-500/20 active:scale-[0.98];
+  }
+
+  .tactical-btn-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-5 py-2.5 rounded-lg transition-all duration-200 text-sm border border-slate-700 active:scale-[0.98];
+  }
+
+  .tactical-badge {
+    @apply text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border;
+  }
+
+  .status-dot {
+    @apply w-2 h-2 rounded-full inline-block;
+  }
+
+  .status-dot--active {
+    @apply bg-emerald-500 shadow-sm shadow-emerald-500/50;
+  }
+
+  .status-dot--pending {
+    @apply bg-amber-500 shadow-sm shadow-amber-500/50;
+  }
+
+  .status-dot--inactive {
+    @apply bg-red-500 shadow-sm shadow-red-500/50;
+  }
+
+  .section-header {
+    @apply text-xs font-bold uppercase tracking-widest text-slate-400 border-b border-slate-800 pb-2 mb-4;
+  }
+}
