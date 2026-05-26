@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import PostCard from '../components/PostCard'
-import { Shield, BadgeCheck, Mail, Activity, FileText, Pencil, Camera, Check, X } from 'lucide-react'
+import { Shield, BadgeCheck, Mail, Activity, FileText, Pencil, Camera, Check, X, AlertTriangle } from 'lucide-react'
 
 export default function Profile({ session }) {
   const [profile, setProfile] = useState(null)
@@ -16,6 +16,8 @@ export default function Profile({ session }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef(null)
 
+  const [msg, setMsg] = useState({ type: '', text: '' })
+
   useEffect(() => {
     if (!session?.user?.id) return
 
@@ -28,6 +30,9 @@ export default function Profile({ session }) {
           .single()
         if (error) {
           console.error('Error fetching profile:', error)
+          if (error.code === 'PGRST116') {
+            setMsg({ type: 'warn', text: 'No profile row found — create one by saving your name.' })
+          }
         } else {
           setProfile(data)
         }
@@ -65,18 +70,21 @@ export default function Profile({ session }) {
       return
     }
     setSavingName(true)
+    setMsg({ type: '', text: '' })
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: editName.trim() })
-        .eq('id', session.user.id)
+        .upsert({ id: session.user.id, full_name: editName.trim() })
       if (error) {
         console.error('Error saving profile name:', error)
+        setMsg({ type: 'error', text: `DB error: ${error.message}` })
       } else {
         setProfile((prev) => ({ ...prev, full_name: editName.trim() }))
+        setMsg({ type: 'success', text: 'Name saved!' })
       }
     } catch (err) {
       console.error('Unexpected error saving name:', err)
+      setMsg({ type: 'error', text: `Unexpected error: ${err.message}` })
     }
     setSavingName(false)
     setEditingName(false)
@@ -86,6 +94,7 @@ export default function Profile({ session }) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingAvatar(true)
+    setMsg({ type: '', text: '' })
 
     try {
       const ext = file.name.split('.').pop()
@@ -96,6 +105,7 @@ export default function Profile({ session }) {
         .upload(fileName, file, { upsert: true })
       if (uploadError) {
         console.error('Error uploading avatar:', uploadError)
+        setMsg({ type: 'error', text: `Upload failed: ${uploadError.message}` })
         setUploadingAvatar(false)
         return
       }
@@ -106,15 +116,17 @@ export default function Profile({ session }) {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avartar_url: publicUrl })
-        .eq('id', session.user.id)
+        .upsert({ id: session.user.id, avartar_url: publicUrl })
       if (updateError) {
         console.error('Error updating avartar_url:', updateError)
+        setMsg({ type: 'error', text: `DB update failed: ${updateError.message}` })
       } else {
         setProfile((prev) => ({ ...prev, avartar_url: publicUrl }))
+        setMsg({ type: 'success', text: 'Avatar uploaded!' })
       }
     } catch (err) {
       console.error('Unexpected error during avatar upload:', err)
+      setMsg({ type: 'error', text: `Unexpected error: ${err.message}` })
     }
     setUploadingAvatar(false)
   }
@@ -149,6 +161,20 @@ export default function Profile({ session }) {
           <div className="h-20 bg-gradient-to-r from-amber-900/30 via-slate-900 to-slate-950 border-b border-slate-800/60 relative overflow-hidden">
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M20 0v40M0 20h40\' stroke=\'%23f59e0b\' stroke-width=\'0.5\'/%3E%3C/svg%3E")' }} />
           </div>
+
+          {/* Visual feedback messages */}
+          {msg.text && (
+            <div className={`mx-5 mt-3 flex items-start gap-2 p-3 rounded-lg border text-xs ${
+              msg.type === 'error'
+                ? 'bg-red-950/30 border-red-900/40 text-red-400'
+                : msg.type === 'warn'
+                ? 'bg-amber-950/30 border-amber-900/40 text-amber-400'
+                : 'bg-emerald-950/30 border-emerald-900/40 text-emerald-400'
+            }`}>
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{msg.text}</span>
+            </div>
+          )}
 
           {/* Avatar — editable */}
           <div className="px-5 pb-5 -mt-10">
