@@ -14,7 +14,7 @@ export default function Dashboard({ session }) {
       case 'feed':
         return <Feed session={session} />
       case 'gallery':
-        return <Gallery />
+        return <Gallery session={session} />
       case 'events':
         return <Events session={session} />
       case 'profile':

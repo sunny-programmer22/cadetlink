@@ -1,13 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import PostCard from '../components/PostCard'
-import { Shield, BadgeCheck, Mail, CalendarDays, Activity, FileText } from 'lucide-react'
+import { Shield, BadgeCheck, Mail, CalendarDays, Activity, FileText, Pencil, Camera, Check, X } from 'lucide-react'
 
 export default function Profile({ session }) {
   const [profile, setProfile] = useState(null)
   const [myPosts, setMyPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [lightboxImage, setLightboxImage] = useState(null)
+
+  const [editingName, setEditingName] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef(null)
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -28,6 +35,52 @@ export default function Profile({ session }) {
       .then(({ data, error }) => { if (!error) setMyPosts(data || []) })
   }, [session])
 
+  const handleSaveName = async () => {
+    if (!editName.trim() || editName === profile?.full_name) {
+      setEditingName(false)
+      return
+    }
+    setSavingName(true)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: editName.trim() })
+      .eq('id', session.user.id)
+    if (!error) {
+      setProfile((prev) => ({ ...prev, full_name: editName.trim() }))
+    }
+    setSavingName(false)
+    setEditingName(false)
+  }
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAvatar(true)
+
+    const ext = file.name.split('.').pop()
+    const fileName = `avatars/${session.user.id}.${ext}`
+    await supabase.storage.from('cadet-media').upload(fileName, file, { upsert: true })
+
+    const { data: { publicUrl } } = supabase.storage.from('cadet-media').getPublicUrl(fileName)
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: publicUrl })
+      .eq('id', session.user.id)
+    if (!error) {
+      setProfile((prev) => ({ ...prev, avatar_url: publicUrl }))
+    }
+    setUploadingAvatar(false)
+  }
+
+  const displayName = profile?.full_name || session?.user?.email?.split('@')[0] || 'Cadet'
+  const initials = displayName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
   const statusConfig = {
     active: { label: 'ACTIVE DUTY', color: 'text-emerald-400', dot: 'status-dot--active', bg: 'bg-emerald-950/30 border-emerald-900/40' },
     pending: { label: 'PENDING ACTIVATION', color: 'text-amber-400', dot: 'status-dot--pending', bg: 'bg-amber-950/30 border-amber-900/40' },
@@ -35,13 +88,6 @@ export default function Profile({ session }) {
   }
 
   const status = statusConfig[profile?.status || 'active'] || statusConfig.active
-
-  const initials = (profile?.full_name || 'U')
-    .split(' ')
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-US', {
@@ -70,20 +116,56 @@ export default function Profile({ session }) {
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M20 0v40M0 20h40\' stroke=\'%23f59e0b\' stroke-width=\'0.5\'/%3E%3C/svg%3E")' }} />
           </div>
 
-          {/* Avatar */}
+          {/* Avatar — editable */}
           <div className="px-5 pb-5 -mt-10">
-            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 border-[3px] border-slate-900 flex items-center justify-center text-white text-xl font-black font-mono shadow-lg shadow-amber-500/20 mb-4">
-              {initials}
+            <div className="relative group mb-4 w-20 h-20">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="avatar"
+                  className="w-20 h-20 rounded-xl border-[3px] border-slate-900 object-cover shadow-lg shadow-amber-500/20" />
+              ) : (
+                <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 border-[3px] border-slate-900 flex items-center justify-center text-white text-xl font-black font-mono shadow-lg shadow-amber-500/20">
+                  {initials}
+                </div>
+              )}
+              <button onClick={() => avatarInputRef.current?.click()} disabled={uploadingAvatar}
+                className="absolute inset-0 rounded-xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer border-[3px] border-slate-900">
+                {uploadingAvatar ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5 text-white" />
+                )}
+              </button>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </div>
 
-            {/* Name and Status */}
+            {/* Name — editable */}
             <div className="space-y-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-100">{profile?.full_name || 'Unknown Cadet'}</h2>
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                      autoFocus className="tactical-input flex-1 text-base font-bold py-1.5"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }} />
+                    <button onClick={handleSaveName} disabled={savingName}
+                      className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400 hover:bg-emerald-500/30 transition">
+                      {savingName ? <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                    </button>
+                    <button onClick={() => setEditingName(false)}
+                      className="p-2 bg-red-500/10 rounded-lg text-red-400 hover:bg-red-500/20 transition">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 group/name">
+                    <h2 className="text-lg font-bold text-slate-100">{displayName}</h2>
+                    <button onClick={() => { setEditName(profile?.full_name || displayName); setEditingName(true) }}
+                      className="p-1 rounded-md text-slate-600 hover:text-amber-400 hover:bg-slate-800/50 opacity-0 group-hover/name:opacity-100 transition-all">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs font-mono text-slate-500">
-                    #{profile?.cadet_number || '---'}
-                  </span>
+                  <span className="text-xs font-mono text-slate-500">#{profile?.cadet_number || '---'}</span>
                 </div>
               </div>
 
@@ -97,7 +179,6 @@ export default function Profile({ session }) {
           {/* Details */}
           <div className="px-5 pb-5 space-y-3">
             <div className="h-px bg-slate-800/60" />
-
             <div className="space-y-2.5">
               <div className="flex items-center gap-3 text-xs">
                 <Mail className="w-3.5 h-3.5 text-slate-500" />
@@ -112,9 +193,7 @@ export default function Profile({ session }) {
                 <span className="text-slate-400">{myPosts.length} posts broadcasted</span>
               </div>
             </div>
-
             <div className="h-px bg-slate-800/60" />
-
             <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600">
               <BadgeCheck className="w-3 h-3 text-emerald-500" />
               ID: {session.user.id.slice(0, 16)}...
@@ -144,11 +223,7 @@ export default function Profile({ session }) {
         ) : (
           <div className="space-y-4">
             {myPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                onImageClick={(url) => setLightboxImage(url)}
-              />
+              <PostCard key={post.id} post={post} onImageClick={(url) => setLightboxImage(url)} />
             ))}
           </div>
         )}
@@ -157,13 +232,10 @@ export default function Profile({ session }) {
       {/* Lightbox */}
       {lightboxImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in" onClick={() => setLightboxImage(null)}>
-          <img
-            src={lightboxImage}
-            alt="Expanded"
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button onClick={() => setLightboxImage(null)} className="absolute top-4 right-4 p-2.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-slate-400 hover:text-white transition-all">
+          <img src={lightboxImage} alt="Expanded" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()} />
+          <button onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 p-2.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-slate-400 hover:text-white transition-all">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
