@@ -74,7 +74,8 @@ export default function Profile({ session }) {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({ id: session.user.id, full_name: editName.trim() })
+        .update({ full_name: editName.trim() })
+        .eq('id', session.user.id)
       if (error) {
         console.error('Error saving profile name:', error)
         setMsg({ type: 'error', text: `DB error: ${error.message}` })

@@ -65,6 +65,7 @@ export default function Gallery({ session }) {
       const { error: insertError } = await supabase.from('posts').insert([{
         user_id: session.user.id,
         media_url: publicUrl,
+        media_type: 'image',
         content: 'Gallery Upload',
       }])
       if (insertError) {
