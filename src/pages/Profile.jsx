@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import PostCard from '../components/PostCard'
-import { Shield, BadgeCheck, Mail, CalendarDays, Activity, FileText, Pencil, Camera, Check, X } from 'lucide-react'
+import { Shield, BadgeCheck, Mail, Activity, FileText, Pencil, Camera, Check, X } from 'lucide-react'
 
 export default function Profile({ session }) {
   const [profile, setProfile] = useState(null)
@@ -81,19 +81,7 @@ export default function Profile({ session }) {
     .toUpperCase()
     .slice(0, 2)
 
-  const statusConfig = {
-    active: { label: 'ACTIVE DUTY', color: 'text-emerald-400', dot: 'status-dot--active', bg: 'bg-emerald-950/30 border-emerald-900/40' },
-    pending: { label: 'PENDING ACTIVATION', color: 'text-amber-400', dot: 'status-dot--pending', bg: 'bg-amber-950/30 border-amber-900/40' },
-    inactive: { label: 'INACTIVE', color: 'text-red-400', dot: 'status-dot--inactive', bg: 'bg-red-950/30 border-red-900/40' },
-  }
-
-  const status = statusConfig[profile?.status || 'active'] || statusConfig.active
-
-  const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString('en-US', {
-        day: 'numeric', month: 'long', year: 'numeric'
-      })
-    : '---'
+  const statusBg = 'bg-emerald-950/30 border-emerald-900/40'
 
   if (loading) {
     return (
@@ -169,9 +157,9 @@ export default function Profile({ session }) {
                 </div>
               </div>
 
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-mono tracking-wider ${status.bg}`}>
-                <span className={`status-dot ${status.dot}`} />
-                <span className={status.color}>{status.label}</span>
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-mono tracking-wider ${statusBg}`}>
+                <span className="status-dot status-dot--active" />
+                <span className="text-emerald-400">ACTIVE DUTY</span>
               </div>
             </div>
           </div>
@@ -184,10 +172,7 @@ export default function Profile({ session }) {
                 <Mail className="w-3.5 h-3.5 text-slate-500" />
                 <span className="text-slate-400">{session.user.email}</span>
               </div>
-              <div className="flex items-center gap-3 text-xs">
-                <CalendarDays className="w-3.5 h-3.5 text-slate-500" />
-                <span className="text-slate-400">Member since {memberSince}</span>
-              </div>
+
               <div className="flex items-center gap-3 text-xs">
                 <Activity className="w-3.5 h-3.5 text-slate-500" />
                 <span className="text-slate-400">{myPosts.length} posts broadcasted</span>

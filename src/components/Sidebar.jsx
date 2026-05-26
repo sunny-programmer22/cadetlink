@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import {
-  LayoutDashboard, Image, Clock, UserCircle, Settings, LogOut,
+  LayoutDashboard, Image, UserCircle, Settings, LogOut,
   Shield, Menu, X, ChevronRight
 } from 'lucide-react'
 
 const NAV_ITEMS = [
   { id: 'feed', label: 'The Hub', icon: LayoutDashboard },
   { id: 'gallery', label: 'Batch Gallery', icon: Image },
-  { id: 'events', label: 'Memorable Events', icon: Clock },
   { id: 'profile', label: 'Profile Dashboard', icon: UserCircle },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]

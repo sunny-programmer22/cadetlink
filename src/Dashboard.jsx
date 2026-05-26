@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Feed from './pages/Feed'
 import Gallery from './pages/Gallery'
-import Events from './pages/Events'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 
@@ -15,8 +14,6 @@ export default function Dashboard({ session }) {
         return <Feed session={session} />
       case 'gallery':
         return <Gallery session={session} />
-      case 'events':
-        return <Events session={session} />
       case 'profile':
         return <Profile session={session} />
       case 'settings':
@@ -29,7 +26,6 @@ export default function Dashboard({ session }) {
   const viewTitles = {
     feed: 'The Hub',
     gallery: 'Batch Gallery',
-    events: 'Memorable Events',
     profile: 'Profile Dashboard',
     settings: 'Settings',
   }
