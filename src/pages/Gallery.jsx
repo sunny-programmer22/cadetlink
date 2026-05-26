@@ -14,21 +14,30 @@ export default function Gallery({ session }) {
   const [filter, setFilter] = useState('all')
   const [showUpload, setShowUpload] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
-  const [uploadCaption, setUploadCaption] = useState('')
   const [uploading, setUploading] = useState(false)
 
   const fileInputRef = useRef(null)
 
+  const fetchMedia = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+        .not('media_url', 'is', null)
+        .order('created_at', { ascending: false })
+      if (error) {
+        console.error('Error fetching gallery media:', error)
+      } else {
+        setMediaItems(data || [])
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching media:', err)
+    }
+    setLoading(false)
+  }
+
   useEffect(() => {
-    supabase
-      .from('posts')
-      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
-      .not('media_url', 'is', null)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error) setMediaItems(data || [])
-        setLoading(false)
-      })
+    fetchMedia()
   }, [])
 
   const handleUpload = async (e) => {
@@ -36,34 +45,42 @@ export default function Gallery({ session }) {
     if (!uploadFile) return
     setUploading(true)
 
-    const ext = uploadFile.name.split('.').pop()
-    const fileName = `gallery/${session.user.id}/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from('cadet-media')
-      .upload(fileName, uploadFile, { cacheControl: '3600', upsert: false })
+    try {
+      const ext = uploadFile.name.split('.').pop()
+      const fileName = `gallery/${session.user.id}/${Date.now()}.${ext}`
 
-    if (uploadError) { setUploading(false); return }
+      const { error: uploadError } = await supabase.storage
+        .from('cadet-media')
+        .upload(fileName, uploadFile)
+      if (uploadError) {
+        console.error('Error uploading to cadet-media:', uploadError)
+        setUploading(false)
+        return
+      }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('cadet-media')
-      .getPublicUrl(fileName)
+      const { data: { publicUrl } } = supabase.storage
+        .from('cadet-media')
+        .getPublicUrl(fileName)
 
-    await supabase.from('posts').insert([{
-      user_id: session.user.id,
-      content: uploadCaption.trim() || null,
-      media_url: publicUrl,
-    }])
+      const { error: insertError } = await supabase.from('posts').insert([{
+        user_id: session.user.id,
+        media_url: publicUrl,
+        media_type: uploadFile.type.startsWith('video/') ? 'video' : 'image',
+        content: 'Gallery Upload',
+      }])
+      if (insertError) {
+        console.error('Error inserting gallery post:', insertError)
+        setUploading(false)
+        return
+      }
 
-    setUploadFile(null)
-    setUploadCaption('')
-    setShowUpload(false)
+      setUploadFile(null)
+      setShowUpload(false)
+      await fetchMedia()
+    } catch (err) {
+      console.error('Unexpected error during gallery upload:', err)
+    }
     setUploading(false)
-    supabase
-      .from('posts')
-      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
-      .not('media_url', 'is', null)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => { if (!error) setMediaItems(data || []) })
   }
 
   const triggerFilePicker = (type) => {
@@ -143,9 +160,6 @@ export default function Gallery({ session }) {
                 className="text-xs text-red-400 hover:text-red-300 ml-2 shrink-0">Remove</button>
             </div>
           )}
-
-          <input type="text" value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)}
-            placeholder="Optional caption..." className="tactical-input" />
 
           <div className="flex justify-end">
             <button type="submit" disabled={uploading || !uploadFile}

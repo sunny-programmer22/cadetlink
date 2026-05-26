@@ -18,35 +18,65 @@ export default function Profile({ session }) {
 
   useEffect(() => {
     if (!session?.user?.id) return
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (!error) setProfile(data)
+
+    const fetchProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        if (error) {
+          console.error('Error fetching profile:', error)
+        } else {
+          setProfile(data)
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching profile:', err)
+      } finally {
         setLoading(false)
-      })
-    supabase
-      .from('posts')
-      .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => { if (!error) setMyPosts(data || []) })
+      }
+    }
+
+    const fetchMyPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+        if (error) {
+          console.error('Error fetching posts:', error)
+        } else {
+          setMyPosts(data || [])
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching posts:', err)
+      }
+    }
+
+    fetchProfile()
+    fetchMyPosts()
   }, [session])
 
-  const handleSaveName = async () => {
+  const handleSaveProfile = async () => {
     if (!editName.trim() || editName === profile?.full_name) {
       setEditingName(false)
       return
     }
     setSavingName(true)
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: editName.trim() })
-      .eq('id', session.user.id)
-    if (!error) {
-      setProfile((prev) => ({ ...prev, full_name: editName.trim() }))
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: editName.trim() })
+        .eq('id', session.user.id)
+      if (error) {
+        console.error('Error saving profile name:', error)
+      } else {
+        setProfile((prev) => ({ ...prev, full_name: editName.trim() }))
+      }
+    } catch (err) {
+      console.error('Unexpected error saving name:', err)
     }
     setSavingName(false)
     setEditingName(false)
@@ -57,18 +87,34 @@ export default function Profile({ session }) {
     if (!file) return
     setUploadingAvatar(true)
 
-    const ext = file.name.split('.').pop()
-    const fileName = `avatars/${session.user.id}.${ext}`
-    await supabase.storage.from('cadet-media').upload(fileName, file, { upsert: true })
+    try {
+      const ext = file.name.split('.').pop()
+      const fileName = `avatars/${session.user.id}.${ext}`
 
-    const { data: { publicUrl } } = supabase.storage.from('cadet-media').getPublicUrl(fileName)
+      const { error: uploadError } = await supabase.storage
+        .from('cadet-media')
+        .upload(fileName, file, { upsert: true })
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError)
+        setUploadingAvatar(false)
+        return
+      }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ avartar_url: publicUrl })
-      .eq('id', session.user.id)
-    if (!error) {
-      setProfile((prev) => ({ ...prev, avartar_url: publicUrl }))
+      const { data: { publicUrl } } = supabase.storage
+        .from('cadet-media')
+        .getPublicUrl(fileName)
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', session.user.id)
+      if (updateError) {
+        console.error('Error updating avatar_url:', updateError)
+      } else {
+        setProfile((prev) => ({ ...prev, avatar_url: publicUrl }))
+      }
+    } catch (err) {
+      console.error('Unexpected error during avatar upload:', err)
     }
     setUploadingAvatar(false)
   }
@@ -107,8 +153,8 @@ export default function Profile({ session }) {
           {/* Avatar — editable */}
           <div className="px-5 pb-5 -mt-10">
             <div className="relative group mb-4 w-20 h-20">
-              {profile?.avartar_url ? (
-                <img src={profile.avartar_url} alt="avatar"
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="avatar"
                   className="w-20 h-20 rounded-xl border-[3px] border-slate-900 object-cover shadow-lg shadow-amber-500/20" />
               ) : (
                 <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 border-[3px] border-slate-900 flex items-center justify-center text-white text-xl font-black font-mono shadow-lg shadow-amber-500/20">
@@ -133,8 +179,8 @@ export default function Profile({ session }) {
                   <div className="flex items-center gap-2">
                     <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                       autoFocus className="tactical-input flex-1 text-base font-bold py-1.5"
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false) }} />
-                    <button onClick={handleSaveName} disabled={savingName}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveProfile(); if (e.key === 'Escape') setEditingName(false) }} />
+                    <button onClick={handleSaveProfile} disabled={savingName}
                       className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400 hover:bg-emerald-500/30 transition">
                       {savingName ? <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
                     </button>
