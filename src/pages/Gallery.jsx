@@ -22,7 +22,7 @@ export default function Gallery({ session }) {
     try {
       const { data, error } = await supabase
         .from('posts')
-        .select('id, content, media_url, media_type, created_at, profiles(full_name, cadet_number)')
+        .select('id, content, media_url, created_at, profiles(full_name, cadet_number)')
         .not('media_url', 'is', null)
         .order('created_at', { ascending: false })
       if (error) {
@@ -65,7 +65,6 @@ export default function Gallery({ session }) {
       const { error: insertError } = await supabase.from('posts').insert([{
         user_id: session.user.id,
         media_url: publicUrl,
-        media_type: uploadFile.type.startsWith('video/') ? 'video' : 'image',
         content: 'Gallery Upload',
       }])
       if (insertError) {
