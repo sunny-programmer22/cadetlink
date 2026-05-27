@@ -25,7 +25,7 @@ export default function Profile({ session }) {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, full_name, avatar_url')
           .eq('id', session.user.id)
           .single()
         if (error) {
@@ -117,12 +117,12 @@ export default function Profile({ session }) {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .upsert({ id: session.user.id, avartar_url: publicUrl })
+        .upsert({ id: session.user.id, avatar_url: publicUrl })
       if (updateError) {
-        console.error('Error updating avartar_url:', updateError)
+        console.error('Error updating avatar_url:', updateError)
         setMsg({ type: 'error', text: `DB update failed: ${updateError.message}` })
       } else {
-        setProfile((prev) => ({ ...prev, avartar_url: publicUrl }))
+        setProfile((prev) => ({ ...prev, avatar_url: publicUrl }))
         setMsg({ type: 'success', text: 'Avatar uploaded!' })
       }
     } catch (err) {
@@ -180,8 +180,8 @@ export default function Profile({ session }) {
           {/* Avatar — editable */}
           <div className="px-5 pb-5 -mt-10">
             <div className="relative group mb-4 w-20 h-20">
-              {profile?.avartar_url ? (
-                <img src={profile.avartar_url} alt="avatar"
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="avatar"
                   className="w-20 h-20 rounded-xl border-[3px] border-slate-900 object-cover shadow-lg shadow-amber-500/20" />
               ) : (
                 <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 border-[3px] border-slate-900 flex items-center justify-center text-white text-xl font-black font-mono shadow-lg shadow-amber-500/20">

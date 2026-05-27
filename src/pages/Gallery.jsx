@@ -14,6 +14,7 @@ export default function Gallery({ session }) {
   const [filter, setFilter] = useState('all')
   const [showUpload, setShowUpload] = useState(false)
   const [uploadFile, setUploadFile] = useState(null)
+  const [description, setDescription] = useState('')
   const [uploading, setUploading] = useState(false)
 
   const fileInputRef = useRef(null)
@@ -64,9 +65,9 @@ export default function Gallery({ session }) {
 
       const { error: insertError } = await supabase.from('posts').insert([{
         user_id: session.user.id,
+        content: description || null,
         media_url: publicUrl,
         media_type: 'image',
-        content: 'Gallery Upload',
       }])
       if (insertError) {
         console.error('Error inserting gallery post:', insertError)
@@ -75,6 +76,7 @@ export default function Gallery({ session }) {
       }
 
       setUploadFile(null)
+      setDescription('')
       setShowUpload(false)
       await fetchMedia()
     } catch (err) {
@@ -156,10 +158,13 @@ export default function Gallery({ session }) {
                 <span className="text-xs text-slate-300 truncate">{uploadFile.name}</span>
                 <span className="text-[10px] font-mono text-slate-500 shrink-0">({(uploadFile.size / 1024 / 1024).toFixed(1)} MB)</span>
               </div>
-              <button type="button" onClick={() => setUploadFile(null)}
+              <button type="button" onClick={() => { setUploadFile(null); setDescription('') }}
                 className="text-xs text-red-400 hover:text-red-300 ml-2 shrink-0">Remove</button>
             </div>
           )}
+
+          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional description..." className="tactical-input" />
 
           <div className="flex justify-end">
             <button type="submit" disabled={uploading || !uploadFile}
