@@ -281,7 +281,7 @@ export default function Profile({ session }) {
         ) : (
           <div className="space-y-4">
             {myPosts.map((post) => (
-              <PostCard key={post.id} post={post} onImageClick={(url) => setLightboxImage(url)} displayName={displayName} />
+              <PostCard key={post.id} post={post} session={session} displayName={displayName} onImageClick={(url) => setLightboxImage(url)} onPostDeleted={(id) => setMyPosts((prev) => prev.filter((p) => p.id !== id))} />
             ))}
           </div>
         )}

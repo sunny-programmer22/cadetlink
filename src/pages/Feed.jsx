@@ -199,7 +199,10 @@ export default function Feed({ session }) {
             <PostCard
               key={post.id}
               post={post}
+              session={session}
+              displayName={session?.user?.email?.split('@')[0] || 'Cadet'}
               onImageClick={(url) => setLightboxImage(url)}
+              onPostDeleted={(id) => setPosts((prev) => prev.filter((p) => p.id !== id))}
             />
           ))
         )}
