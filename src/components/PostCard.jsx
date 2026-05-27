@@ -77,7 +77,7 @@ export default function PostCard({ post, onImageClick, displayName }) {
           <span>Broadcast</span>
         </div>
         <span className="text-[10px] font-mono text-slate-700 ml-auto">
-          #{post.id?.slice(0, 8)}
+          #{String(post.id).slice(0, 8)}
         </span>
       </div>
     </div>
