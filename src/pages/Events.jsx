@@ -30,12 +30,12 @@ export default function Events({ session }) {
       const ext = eventFile.name.split('.').pop()
       const fileName = `events/${session.user.id}/${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .upload(fileName, eventFile)
 
       if (!uploadError) {
         const { data: { publicUrl } } = supabase.storage
-          .from('cadet-media')
+          .from('cadet-madia')
           .getPublicUrl(fileName)
         mediaUrl = publicUrl
       }

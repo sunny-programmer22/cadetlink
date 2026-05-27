@@ -32,7 +32,7 @@ export default function Feed({ session }) {
       const ext = file.name.split('.').pop()
       const fileName = `${session.user.id}/${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
@@ -44,7 +44,7 @@ export default function Feed({ session }) {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .getPublicUrl(fileName)
 
       mediaUrl = publicUrl

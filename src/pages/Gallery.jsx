@@ -50,16 +50,16 @@ export default function Gallery({ session }) {
       const fileName = `gallery/${session.user.id}/${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .upload(fileName, uploadFile)
       if (uploadError) {
-        console.error('Error uploading to cadet-media:', uploadError)
+        console.error('Error uploading to cadet-madia:', uploadError)
         setUploading(false)
         return
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .getPublicUrl(fileName)
 
       const { error: insertError } = await supabase.from('posts').insert([{

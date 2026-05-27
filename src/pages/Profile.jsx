@@ -102,7 +102,7 @@ export default function Profile({ session }) {
       const fileName = `avatars/${session.user.id}.${ext}`
 
       const { error: uploadError } = await supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .upload(fileName, file, { upsert: true })
       if (uploadError) {
         console.error('Error uploading avatar:', uploadError)
@@ -112,7 +112,7 @@ export default function Profile({ session }) {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('cadet-media')
+        .from('cadet-madia')
         .getPublicUrl(fileName)
 
       const { error: updateError } = await supabase
